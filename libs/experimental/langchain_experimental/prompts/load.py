@@ -8,6 +8,8 @@ import yaml
 from langchain.prompts.loading import load_prompt_from_config, try_load_from_hub
 from langchain.schema.prompts import BasePromptTemplate
 
+import libs.langchain.langchain.chains.arcgis.layer.prompts
+
 
 def load_prompt(path: Union[str, Path]) -> BasePromptTemplate:
     """Unified method for loading a prompt from LangChainHub or local fs."""
@@ -42,9 +44,9 @@ def _load_prompt_from_file(file: Union[str, Path]) -> BasePromptTemplate:
         helper = importlib.util.module_from_spec(spec)
         with open(file_path, "rb") as f:
             exec(f.read(), helper.__dict__)
-        if not isinstance(helper.PROMPT, BasePromptTemplate):
+        if not isinstance(libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT, BasePromptTemplate):
             raise ValueError("Did not get object of type BasePromptTemplate.")
-        return helper.PROMPT
+        return libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT
     else:
         raise ValueError(f"Got unsupported file type {file_path.suffix}")
     # Load the prompt from the config now.
