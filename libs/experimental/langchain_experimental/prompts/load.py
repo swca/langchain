@@ -8,8 +8,6 @@ import yaml
 from langchain.prompts.loading import load_prompt_from_config, try_load_from_hub
 from langchain.schema.prompts import BasePromptTemplate
 
-import libs.langchain.langchain.chains.arcgis.layer.prompts
-
 
 def load_prompt(path: Union[str, Path]) -> BasePromptTemplate:
     """Unified method for loading a prompt from LangChainHub or local fs."""
