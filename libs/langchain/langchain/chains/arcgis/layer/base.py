@@ -1,22 +1,31 @@
 from __future__ import annotations
 
+from pydantic import Extra
+from typing import Any, Dict, List, Optional, Tuple, Sequence
+
 from langchain import LLMChain
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForChainRun,
+    Callbacks,
     CallbackManagerForChainRun,
 )
-from pydantic import Extra
-from typing import Any, Dict, List, Optional, Sequence
-
+from langchain.chains.combine_documents.base import (
+    BaseCombineDocumentsChain,
+)
+from langchain.chains.llm import LLMChain
 from langchain.chat_models.base import BaseChatModel
+from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
+from langchain.prompts.prompt import PromptTemplate
+from langchain.pydantic_v1 import Extra, Field, root_validator
 from langchain.schema import BaseDocumentTransformer
+from langchain.schema import BasePromptTemplate, format_document
 from langchain.schema import Document
 
 from langchain.chains.arcgis.layer.prompts import PROMPT
 
 
-class ArcGISLayerSummaryChain(LLMChain):
+class ArcGISLayerSummaryInnerChain(LLMChain):
     """
     Represents a custom chain to generate overall layer summaries for geospatial data layers using an LLM.
 
@@ -47,9 +56,9 @@ class ArcGISLayerSummaryChain(LLMChain):
         return [self.output_key]
 
     def _call(
-        self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
+            self,
+            inputs: Dict[str, Any],
+            run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         prompt_value = self.prompt.format_prompt(**inputs)
 
@@ -63,9 +72,9 @@ class ArcGISLayerSummaryChain(LLMChain):
         return {self.output_key: response.generations[0][0].text}
 
     async def _acall(
-        self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
+            self,
+            inputs: Dict[str, Any],
+            run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         prompt_value = self.prompt.format_prompt(**inputs)
 
@@ -77,6 +86,126 @@ class ArcGISLayerSummaryChain(LLMChain):
         #     await run_manager.on_text("Log something about this run")
 
         return {self.output_key: response.generations[0][0].text}
+
+    @property
+    def _chain_type(self) -> str:
+        return "ArcGISRowSummaryInnerChain"
+
+
+
+
+def _get_default_document_prompt() -> ChatPromptTemplate:
+    return PROMPT
+
+
+class ArcGISLayerSummaryChain(BaseCombineDocumentsChain):
+    llm_chain: ArcGISLayerSummaryInnerChain
+    """LLM chain which is called with the formatted document string,
+    along with any other inputs."""
+    document_prompt: ChatPromptTemplate = Field(
+        default_factory=_get_default_document_prompt
+    )
+
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = Extra.forbid
+        arbitrary_types_allowed = True
+
+    @staticmethod
+    def summaries_str(docs: Sequence[Document]) -> str:
+        """
+        Converts a list of summaries into a formatted string.
+
+        Args:
+            summaries (list[str]): A list of summaries.
+
+        Returns:
+            str: A formatted string containing the summaries.
+        """
+        summaries = (doc.page_content for doc in docs)
+        sub_sums = "\n".join(
+            f"<row_summary>\n{summary}\n</row_summary>" for summary in summaries
+        )
+        return f"<layer_summary>\n{sub_sums}\n</layer_summary>"
+
+    def _get_inputs(self, docs: List[Document], **kwargs: Any) -> dict:
+        """Construct inputs from kwargs and docs.
+
+        Format and the join all the documents together into one input with name
+        `self.document_variable_name`. The pluck any additional variables
+        from **kwargs.
+
+        Args:
+            docs: List of documents to format and then join into single input
+            **kwargs: additional inputs to chain, will pluck any other required
+                arguments from here.
+
+        Returns:
+            dictionary of inputs to LLMChain
+        """
+        inputs = dict(
+            name=docs[0].metadata['name'],
+            desc=ArcGISRowSummaryTransformer.desc_from_doc(docs[0]),
+            summaries_str=self.summaries_str(docs),
+        )
+        return inputs
+
+    def prompt_length(self, docs: List[Document], **kwargs: Any) -> Optional[int]:
+        """Return the prompt length given the documents passed in.
+
+        This can be used by a caller to determine whether passing in a list
+        of documents would exceed a certain prompt length. This useful when
+        trying to ensure that the size of a prompt remains below a certain
+        context limit.
+
+        Args:
+            docs: List[Document], a list of documents to use to calculate the
+                total prompt length.
+
+        Returns:
+            Returns None if the method does not depend on the prompt length,
+            otherwise the length of the prompt in tokens.
+        """
+        inputs = self._get_inputs(docs, **kwargs)
+        prompt = self.llm_chain.prompt.format(**inputs)
+        return self.llm_chain.llm.get_num_tokens(prompt)
+
+    def combine_docs(
+        self, docs: List[Document], callbacks: Callbacks = None, **kwargs: Any
+    ) -> Tuple[str, dict]:
+        """Stuff all documents into one prompt and pass to LLM.
+
+        Args:
+            docs: List of documents to join together into one variable
+            callbacks: Optional callbacks to pass along
+            **kwargs: additional parameters to use to get inputs to LLMChain.
+
+        Returns:
+            The first element returned is the single string output. The second
+            element returned is a dictionary of other keys to return.
+        """
+        inputs = self._get_inputs(docs, **kwargs)
+        # Call predict on the LLM.
+        return self.llm_chain.predict(callbacks=callbacks, **inputs), {}
+
+    async def acombine_docs(
+        self, docs: List[Document], callbacks: Callbacks = None, **kwargs: Any
+    ) -> Tuple[str, dict]:
+        """Async stuff all documents into one prompt and pass to LLM.
+
+        Args:
+            docs: List of documents to join together into one variable
+            callbacks: Optional callbacks to pass along
+            **kwargs: additional parameters to use to get inputs to LLMChain.
+
+        Returns:
+            The first element returned is the single string output. The second
+            element returned is a dictionary of other keys to return.
+        """
+        inputs = self._get_inputs(docs, **kwargs)
+        # Call predict on the LLM.
+        return await self.llm_chain.apredict(callbacks=callbacks, **inputs), {}
 
     @property
     def _chain_type(self) -> str:

@@ -29,5 +29,5 @@ SYSTEM_PROMPT = SystemMessagePromptTemplate.from_template(system_template)
 HUMAN_PROMPT = HumanMessagePromptTemplate.from_template(human_template)
 
 PROMPT = ChatPromptTemplate.from_messages(
-    [system_prompt, human_prompt],
+    [SYSTEM_PROMPT, HUMAN_PROMPT],
 )
