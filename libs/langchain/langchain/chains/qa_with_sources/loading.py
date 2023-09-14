@@ -21,8 +21,6 @@ from langchain.chains.question_answering.map_rerank_prompt import (
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.schema.prompt_template import BasePromptTemplate
 
-import libs.langchain.langchain.chains.arcgis.layer.prompts
-
 
 class LoadingCallable(Protocol):
     """Interface for loading the combine documents chain."""
@@ -54,7 +52,7 @@ def _load_map_rerank_chain(
 
 def _load_stuff_chain(
     llm: BaseLanguageModel,
-    prompt: BasePromptTemplate = libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT,
+    prompt: BasePromptTemplate = stuff_prompt.PROMPT,
     document_prompt: BasePromptTemplate = stuff_prompt.EXAMPLE_PROMPT,
     document_variable_name: str = "summaries",
     verbose: Optional[bool] = None,

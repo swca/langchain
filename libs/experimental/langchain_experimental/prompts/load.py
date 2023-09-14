@@ -42,9 +42,9 @@ def _load_prompt_from_file(file: Union[str, Path]) -> BasePromptTemplate:
         helper = importlib.util.module_from_spec(spec)
         with open(file_path, "rb") as f:
             exec(f.read(), helper.__dict__)
-        if not isinstance(libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT, BasePromptTemplate):
+        if not isinstance(helper.PROMPT, BasePromptTemplate):
             raise ValueError("Did not get object of type BasePromptTemplate.")
-        return libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT
+        return helper.PROMPT
     else:
         raise ValueError(f"Got unsupported file type {file_path.suffix}")
     # Load the prompt from the config now.

@@ -12,8 +12,6 @@ from langchain.chains.summarize import map_reduce_prompt, refine_prompts, stuff_
 from langchain.schema import BasePromptTemplate
 from langchain.schema.language_model import BaseLanguageModel
 
-import libs.langchain.langchain.chains.arcgis.layer.prompts
-
 
 class LoadingCallable(Protocol):
     """Interface for loading the combine documents chain."""
@@ -26,7 +24,7 @@ class LoadingCallable(Protocol):
 
 def _load_stuff_chain(
     llm: BaseLanguageModel,
-    prompt: BasePromptTemplate = libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT,
+    prompt: BasePromptTemplate = stuff_prompt.PROMPT,
     document_variable_name: str = "text",
     verbose: Optional[bool] = None,
     **kwargs: Any,
@@ -43,8 +41,8 @@ def _load_stuff_chain(
 
 def _load_map_reduce_chain(
     llm: BaseLanguageModel,
-    map_prompt: BasePromptTemplate = libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT,
-    combine_prompt: BasePromptTemplate = libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT,
+    map_prompt: BasePromptTemplate = map_reduce_prompt.PROMPT,
+    combine_prompt: BasePromptTemplate = map_reduce_prompt.PROMPT,
     combine_document_variable_name: str = "text",
     map_reduce_document_variable_name: str = "text",
     collapse_prompt: Optional[BasePromptTemplate] = None,
@@ -106,7 +104,7 @@ def _load_map_reduce_chain(
 
 def _load_refine_chain(
     llm: BaseLanguageModel,
-    question_prompt: BasePromptTemplate = libs.langchain.langchain.chains.arcgis.layer.prompts.PROMPT,
+    question_prompt: BasePromptTemplate = refine_prompts.PROMPT,
     refine_prompt: BasePromptTemplate = refine_prompts.REFINE_PROMPT,
     document_variable_name: str = "text",
     initial_response_name: str = "existing_answer",
