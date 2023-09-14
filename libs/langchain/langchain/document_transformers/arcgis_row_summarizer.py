@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Sequence
 
 from langchain.chains import ArcGISRowSummaryChain
@@ -103,7 +104,10 @@ class ArcGISRowSummaryTransformer(BaseDocumentTransformer):
             list[Document]: List of documents with summaries.
         """
         for doc, summary in zip(docs, summaries):
-            doc.metadata["summary"] = summary
+            # convert attributes back to dict and store in metadata
+            doc.metadata["attributes"] = json.loads(doc.page_content)
+            # replace page_content with the generated summary
+            doc.page_content = summary
         return docs
 
     def transform_documents(
