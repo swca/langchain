@@ -1,33 +1,32 @@
 from __future__ import annotations
 
-from pydantic import Extra
-from typing import Any, Dict, List, Optional, Tuple, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from langchain import LLMChain
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForChainRun,
-    Callbacks,
     CallbackManagerForChainRun,
+    Callbacks,
 )
+from langchain.chains.arcgis.layer.prompts import PROMPT
 from langchain.chains.combine_documents.base import (
     BaseCombineDocumentsChain,
 )
 from langchain.chains.llm import LLMChain
 from langchain.chat_models.base import BaseChatModel
-from langchain.docstore.document import Document
+from langchain.document_transformers.arcgis_row_summarizer import (
+    ArcGISRowSummaryTransformer,
+)
 from langchain.prompts import ChatPromptTemplate
-from langchain.prompts.prompt import PromptTemplate
-from langchain.pydantic_v1 import Extra, Field, root_validator
-from langchain.schema import BaseDocumentTransformer
-from langchain.schema import BasePromptTemplate, format_document
-from langchain.schema import Document
-
-from langchain.chains.arcgis.layer.prompts import PROMPT
+from langchain.pydantic_v1 import Extra, Field
+from langchain.schema import (
+    Document,
+)
 
 
 class ArcGISLayerSummaryInnerChain(LLMChain):
     """
-    Represents a custom chain to generate overall layer summaries for geospatial data layers using an LLM.
+    Represents a custom chain to generate overall layer
+    summaries for geospatial data layers using an LLM.
 
     Attributes:
         llm (BaseChatModel): The Large Language Model used for text generation.
@@ -56,9 +55,9 @@ class ArcGISLayerSummaryInnerChain(LLMChain):
         return [self.output_key]
 
     def _call(
-            self,
-            inputs: Dict[str, Any],
-            run_manager: Optional[CallbackManagerForChainRun] = None,
+        self,
+        inputs: Dict[str, Any],
+        run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         prompt_value = self.prompt.format_prompt(**inputs)
 
@@ -72,9 +71,9 @@ class ArcGISLayerSummaryInnerChain(LLMChain):
         return {self.output_key: response.generations[0][0].text}
 
     async def _acall(
-            self,
-            inputs: Dict[str, Any],
-            run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
+        self,
+        inputs: Dict[str, Any],
+        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
         prompt_value = self.prompt.format_prompt(**inputs)
 
@@ -89,9 +88,7 @@ class ArcGISLayerSummaryInnerChain(LLMChain):
 
     @property
     def _chain_type(self) -> str:
-        return "ArcGISRowSummaryInnerChain"
-
-
+        return "ArcGISLayerSummaryInnerChain"
 
 
 def _get_default_document_prompt() -> ChatPromptTemplate:
@@ -145,7 +142,7 @@ class ArcGISLayerSummaryChain(BaseCombineDocumentsChain):
             dictionary of inputs to LLMChain
         """
         inputs = dict(
-            name=docs[0].metadata['name'],
+            name=docs[0].metadata["name"],
             desc=ArcGISRowSummaryTransformer.desc_from_doc(docs[0]),
             summaries_str=self.summaries_str(docs),
         )
