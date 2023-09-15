@@ -95,7 +95,7 @@ def _get_default_document_prompt() -> ChatPromptTemplate:
     return PROMPT
 
 
-class ArcGISLayerSummaryChain(BaseCombineDocumentsChain):
+class ArcGISLayerStuffSummaryChain(BaseCombineDocumentsChain):
     llm_chain: ArcGISLayerSummaryInnerChain
     """LLM chain which is called with the formatted document string,
     along with any other inputs."""
@@ -206,4 +206,4 @@ class ArcGISLayerSummaryChain(BaseCombineDocumentsChain):
 
     @property
     def _chain_type(self) -> str:
-        return "ArcGISLayerSummaryChain"
+        return "ArcGISLayerStuffSummaryChain"
